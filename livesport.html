@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Live Sport</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #0a0a0a;
+      color: white;
+      min-height: 100vh;
+    }
+
+    header {
+      background: #0a0a0a;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #00e676;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .logo { display: flex; align-items: center; gap: 8px; }
+    .logo-icon {
+      width: 32px; height: 32px;
+      background: #00e676;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .logo-text { font-size: 20px; font-weight: 900; }
+    .logo-text span { color: #00e676; }
+
+    .live-badge {
+      background: #ff0000;
+      color: white;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 4px;
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+    .tabs {
+      display: flex;
+      background: #111;
+      border-bottom: 1px solid #222;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+
+    .tab {
+      flex: 1;
+      padding: 12px 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      white-space: nowrap;
+      min-width: 80px;
+      transition: all 0.2s;
+    }
+    .tab.active { color: #00e676; border-bottom-color: #00e676; }
+
+    .container { padding: 14px; }
+
+    .section { display: none; }
+    .section.active { display: block; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      color: #00e676;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+      margin-top: 4px;
+    }
+
+    /* LOADING */
+    .loading {
+      text-align: center;
+      padding: 30px;
+      color: #555;
+    }
+    .spinner {
+      width: 30px; height: 30px;
+      border: 3px solid #222;
+      border-top-color: #00e676;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 10px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* MATCH CARD */
+    .match-card {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      position: relative;
+      overflow: hidden;
+    }
+    .match-card::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 3px;
+    }
+    .match-card.live::before { background: #ff0000; }
+    .match-card.soon::before { background: #00e676; }
+    .match-card.done::before { background: #333; }
+
+    .match-top {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .competition { font-size: 11px; color: #555; font-weight: 600; text-transform: uppercase; }
+
+    .match-status {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+    }
+    .s-live { background: #ff000022; color: #ff4444; }
+    .s-soon { background: #00e67622; color: #00e676; }
+    .s-done { background: #ffffff11; color: #666; }
+
+    .match-teams {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .team {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+    }
+    .team img {
+      width: 32px; height: 32px;
+      object-fit: contain;
+    }
+    .team-name { font-size: 12px; font-weight: 600; color: #ccc; text-align: center; }
+
+    .score-box { text-align: center; min-width: 80px; }
+    .score { font-size: 24px; font-weight: 900; }
+    .score.live { color: #00e676; }
+    .score.done { color: #aaa; }
+    .score.soon { color: #444; }
+    .score-min { font-size: 11px; color: #ff4444; font-weight: 700; margin-top: 2px; }
+
+    /* NEWS */
+    .news-card {
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 12px;
+      padding: 14px;
+      margin-bottom: 10px;
+      display: flex;
+      gap: 12px;
+    }
+    .news-thumb {
+      width: 70px; height: 55px;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px;
+    }
+    .news-cat { font-size: 10px; font-weight: 700; color: #00e676; text-transform: uppercase; margin-bottom: 4px; }
+    .news-title { font-size: 13px; font-weight: 600; line-height: 1.4; margin-bottom: 4px; }
+    .news-time { font-size: 11px; color: #555; }
+
+    .refresh-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: #161616;
+      border: 1px solid #222;
+      border-radius: 8px;
+      color: #00e676;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 10px;
+      width: 100%;
+      cursor: pointer;
+      margin-bottom: 14px;
+    }
+
+    .error-msg {
+      text-align: center;
+      padding: 20px;
+      color: #555;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">⚡</div>
+    <div class="logo-text">Live<span>Sport</span></div>
+  </div>
+  <div class="live-badge" id="liveBadge">● LIVE</div>
+</header>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('foot', this)">⚽ Football</div>
+  <div class="tab" onclick="switchTab('basket', this)">🏀 Basket</div>
+  <div class="tab" onclick="switchTab('tennis', this)">🎾 Tennis</div>
+  <div class="tab" onclick="switchTab('rugby', this)">🏉 Rugby</div>
+</div>
+
+<div class="container">
+
+  <div class="section active" id="foot">
+    <button class="refresh-btn" onclick="loadFootball()">🔄 Actualiser</button>
+    <div class="section-title">Matchs en direct</div>
+    <div id="foot-matches"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+    <div class="section-title" style="margin-top:16px">Actualités Football</div>
+    <div id="foot-news"></div>
+  </div>
+
+  <div class="section" id="basket">
+    <button class="refresh-btn" onclick="loadBasket()">🔄 Actualiser</button>
+    <div class="section-title">NBA — Matchs du jour</div>
+    <div id="basket-matches"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+    <div class="section-title" style="margin-top:16px">Actualités Basket</div>
+    <div id="basket-news"></div>
+  </div>
+
+  <div class="section" id="tennis">
+    <button class="refresh-btn" onclick="loadTennis()">🔄 Actualiser</button>
+    <div class="section-title">Matchs en cours</div>
+    <div id="tennis-matches"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+    <div class="section-title" style="margin-top:16px">Actualités Tennis</div>
+    <div id="tennis-news"></div>
+  </div>
+
+  <div class="section" id="rugby">
+    <button class="refresh-btn" onclick="loadRugby()">🔄 Actualiser</button>
+    <div class="section-title">Top 14 — Matchs</div>
+    <div id="rugby-matches"><div class="loading"><div class="spinner"></div>Chargement...</div></div>
+    <div class="section-title" style="margin-top:16px">Actualités Rugby</div>
+    <div id="rugby-news"></div>
+  </div>
+
+</div>
+
+<script>
+  // ── SCORES via TheSportsDB (100% gratuit, sans clé) ──
+
+  const TSDB = 'https://www.thesportsdb.com/api/v1/json/3';
+
+  // IDs des ligues sur TheSportsDB
+  const LEAGUES = {
+    foot:   [4480, 4328, 4335, 4334], // Ligue 1, Premier League, La Liga, Serie A
+    basket: [4387],                    // NBA
+    tennis: [4407],                    // ATP
+    rugby:  [4462],                    // Top 14
+  };
+
+  function matchCard(home, away, scoreH, scoreA, status, competition, minute) {
+    let statusClass = 'done', statusLabel = 'Terminé', scoreClass = 'done';
+    if (status === 'NS') { statusClass = 'soon'; statusLabel = 'À venir'; scoreClass = 'soon'; }
+    if (['1H','2H','HT','ET','P','LIVE','inprogress','In Progress'].some(s => status.includes(s))) {
+      statusClass = 'live'; statusLabel = '● EN DIRECT'; scoreClass = 'live';
+    }
+
+    const scoreText = (scoreH !== null && scoreA !== null) ? `${scoreH} – ${scoreA}` : '- – -';
+    const minText = (statusClass === 'live' && minute) ? `<div class="score-min">${minute}'</div>` : '';
+
+    return `
+      <div class="match-card ${statusClass}">
+        <div class="match-top">
+          <span class="competition">${competition}</span>
+          <span class="match-status s-${statusClass}">${statusLabel}</span>
+        </div>
+        <div class="match-teams">
+          <div class="team"><div style="font-size:24px">🏟</div><div class="team-name">${home}</div></div>
+          <div class="score-box">
+            <div class="score ${scoreClass}">${scoreText}</div>
+            ${minText}
+          </div>
+          <div class="team"><div style="font-size:24px">🏟</div><div class="team-name">${away}</div></div>
+        </div>
+      </div>`;
+  }
+
+  async function fetchEvents(leagueId) {
+    try {
+      const r = await fetch(`${TSDB}/eventsnextleague.php?id=${leagueId}`);
+      const d = await r.json();
+      return d.events || [];
+    } catch { return []; }
+  }
+
+  async function fetchLive(leagueId) {
+    try {
+      const r = await fetch(`${TSDB}/eventslast.php?id=${leagueId}`);
+      const d = await r.json();
+      return d.results || [];
+    } catch { return []; }
+  }
+
+  function renderMatches(containerId, events, leagueName) {
+    const el = document.getElementById(containerId);
+    if (!events || events.length === 0) {
+      el.innerHTML = `<div class="error-msg">Aucun match disponible pour le moment</div>`;
+      return;
+    }
+    el.innerHTML = events.slice(0, 6).map(e => {
+      const scoreH = e.intHomeScore;
+      const scoreA = e.intAwayScore;
+      const status = e.strStatus || 'NS';
+      const min = e.intProgress || '';
+      return matchCard(e.strHomeTeam, e.strAwayTeam, scoreH, scoreA, status, leagueName, min);
+    }).join('');
+  }
+
+  // News statiques mais réalistes (RSS bloqué par CORS)
+  const NEWS = {
+    foot: [
+      { icon: '⚽', bg: '#1a1a2e', cat: 'Football', title: 'Ligue des Champions : les résultats du soir', time: 'Il y a 20 min' },
+      { icon: '🏆', bg: '#1a2e1a', cat: 'Transfert', title: 'Mercato : les dernières rumeurs du jour', time: 'Il y a 1h' },
+      { icon: '📊', bg: '#2e1a1a', cat: 'Ligue 1', title: 'Classement mis à jour après la 30ème journée', time: 'Il y a 2h' },
+    ],
+    basket: [
+      { icon: '🏀', bg: '#1a1500', cat: 'NBA', title: 'Playoffs NBA : résumé de la nuit', time: 'Il y a 30 min' },
+      { icon: '🌟', bg: '#1a001a', cat: 'NBA', title: 'Wembanyama continue d\'impressionner', time: 'Il y a 2h' },
+    ],
+    tennis: [
+      { icon: '🎾', bg: '#1a1a00', cat: 'Tennis', title: 'Roland Garros 2026 : programme du jour', time: 'Il y a 45 min' },
+      { icon: '🏅', bg: '#001a1a', cat: 'ATP', title: 'Alcaraz favori numéro 1 mondial confirmé', time: 'Il y a 3h' },
+    ],
+    rugby: [
+      { icon: '🏉', bg: '#001a0d', cat: 'Top 14', title: 'Toulouse en route vers le titre', time: 'Il y a 1h' },
+      { icon: '🌍', bg: '#1a0d00', cat: 'Rugby', title: 'XV de France : la liste des convoqués', time: 'Il y a 4h' },
+    ],
+  };
+
+  function renderNews(containerId, sport) {
+    const el = document.getElementById(containerId);
+    el.innerHTML = NEWS[sport].map(n => `
+      <div class="news-card">
+        <div class="news-thumb" style="background:${n.bg}">${n.icon}</div>
+        <div>
+          <div class="news-cat">${n.cat}</div>
+          <div class="news-title">${n.title}</div>
+          <div class="news-time">${n.time}</div>
+        </div>
+      </div>`).join('');
+  }
+
+  async function loadFootball() {
+    document.getElementById('foot-matches').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+    const all = [];
+    for (const id of LEAGUES.foot) {
+      const events = await fetchEvents(id);
+      all.push(...events);
+    }
+    renderMatches('foot-matches', all, 'Football');
+    renderNews('foot-news', 'foot');
+  }
+
+  async function loadBasket() {
+    document.getElementById('basket-matches').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+    const events = await fetchEvents(LEAGUES.basket[0]);
+    renderMatches('basket-matches', events, 'NBA');
+    renderNews('basket-news', 'basket');
+  }
+
+  async function loadTennis() {
+    document.getElementById('tennis-matches').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+    const events = await fetchEvents(LEAGUES.tennis[0]);
+    renderMatches('tennis-matches', events, 'Tennis ATP');
+    renderNews('tennis-news', 'tennis');
+  }
+
+  async function loadRugby() {
+    document.getElementById('rugby-matches').innerHTML = '<div class="loading"><div class="spinner"></div>Chargement...</div>';
+    const events = await fetchEvents(LEAGUES.rugby[0]);
+    renderMatches('rugby-matches', events, 'Top 14');
+    renderNews('rugby-news', 'rugby');
+  }
+
+  function switchTab(sport, el) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.getElementById(sport).classList.add('active');
+    el.classList.add('active');
+  }
+
+  // Charger au démarrage
+  loadFootball();
+
+  // Auto-refresh toutes les 60 secondes
+  setInterval(() => {
+    const active = document.querySelector('.section.active');
+    if (active.id === 'foot') loadFootball();
+    else if (active.id === 'basket') loadBasket();
+    else if (active.id === 'tennis') loadTennis();
+    else if (active.id === 'rugby') loadRugby();
+  }, 60000);
+</script>
+
+</body>
+</html>
